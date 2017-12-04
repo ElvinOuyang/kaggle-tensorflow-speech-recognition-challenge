@@ -6,7 +6,8 @@ learning
 
 Requirements:
 mfcc files generated from the .wav files of the dataset that are centered
-and scaled. The 1-13 columns are
+and scaled. The 1-13 columns are MFCCs, 14-26 columns are deltas, 27-39 columns
+are delta-deltas.
 """
 
 import numpy as np
@@ -36,7 +37,7 @@ learning_rate = 0.1
 momentum = 0.9
 load_model = False
 last_epoch = 0
-num_inputs = 39
+num_inputs = 13
 
 # set random seed
 torch.manual_seed(1122)
