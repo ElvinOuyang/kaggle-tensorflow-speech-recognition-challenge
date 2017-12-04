@@ -227,28 +227,31 @@ def testModel(dataloader, epoch):
 
 # run the training epoch 100 times and test the result
 print(">>> training model with cnn")
-epoch_loss = [1]
-epoch_acc = [0]
-epoch_time = [0]
+epoch_loss = []
+epoch_acc = []
+epoch_time = []
+best_acc = 0
 for epoch in range(last_epoch, total_epochs):
     start = time.time()
     trainEpoch(trainloader, epoch)
     duration = time.time() - start
     loss, acc = validateModel(testloader, epoch)
-    if acc > epoch_acc[-1]:
+    if acc > best_acc:
+        best_acc = acc
         save_model = '../models/' + model_name + datetime.datetime.now(
         ).strftime("_%Y_%m_%d_%H_%M") + '_epoch_' + str(epoch + 1) + "_lr_" +\
             str(learning_rate) + ".pt"
         print(">>> Epoch %i: saving model to local path" % (epoch + 1))
         torch.save(cnn.state_dict(), save_model)
+    print(">>> Best Accuracy So Far: %.4f%%" % (best_acc * 100))
     epoch_acc.append(acc)
     epoch_loss.append(loss)
     epoch_time.append(duration)
 
 print(">>> outputing predictions to local file")
-epoch_loss = np.array(epoch_loss[1:])
-epoch_acc = np.array(epoch_acc[1:])
-epoch_time = np.array(epoch_time[1:])
+epoch_loss = np.array(epoch_loss)
+epoch_acc = np.array(epoch_acc)
+epoch_time = np.array(epoch_time)
 training_log = pd.DataFrame()
 training_log['loss'] = epoch_loss
 training_log['accuracy'] = epoch_acc
