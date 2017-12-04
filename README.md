@@ -20,4 +20,4 @@ MLP (
 
 The `num_inputs` value is determined by our feature generation stage when the MFCC scores of the same length are calculated for each WAV file. The target phonemes have 38 possible labels. With a learning rate of 0.1 and a momentum of 0.9 for the Stochastic Gradient Descent optimization algorithm, we created a model with around 50% accuracy and 1.5 average NLLLoss. This performance is quite impressive for such a simple model, considering the natural probability of the classification being correct is only 1/38, i.e. 2.63%. The training logs of the first 100 epochs is displayed below:
 
-![mlp_training_log](\images\training_log2017_12_04_04_29_epochs_100.png)
+![mlp_training_log](https://github.com/ElvinOuyang/kaggle-tensorflow-speech-recognition-challenge/blob/master/images/training_log2017_12_04_04_29_epochs_100.png)
