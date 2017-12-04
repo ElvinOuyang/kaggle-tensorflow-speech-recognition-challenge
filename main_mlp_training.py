@@ -212,7 +212,7 @@ for epoch in range(last_epoch, total_epochs):
     duration = time.time() - start
     loss, acc = validateModel(testloader, epoch)
     if acc > epoch_acc[-1]:
-        save_model = '../log/mlp_model_' + datetime.datetime.now().strftime(
+        save_model = '../models/mlp_model_' + datetime.datetime.now().strftime(
             "%Y_%m_%d_%H_%M") + '_epoch_' + str(epoch + 1) + "_lr_" +\
             str(learning_rate) + ".pt"
         print(">>> Epoch %i: saving model to local path" % (epoch + 1))
