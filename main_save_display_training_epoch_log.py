@@ -2,10 +2,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-log_path = "../log/training_log2017_12_04_04_29_epochs_100.csv"
+log_path = "../log/training_log_cnn_2017_12_04_18_48_epochs_50.csv"
 my_dpi = 90
-out_path = "../log/training_log2017_12_04_04_29_epochs_100.png"
-model_name = "MFCC-Phonemes MLP (Alpha: 0.1, Momentum: 0.9)"
+out_path = "../log/training_log_cnn_2017_12_04_18_48_epochs_50.png"
+model_name = "MFCC-Phonemes CNN (Alpha: 0.1, Momentum: 0.9)"
 
 df = pd.read_csv(log_path, index_col=0)
 
