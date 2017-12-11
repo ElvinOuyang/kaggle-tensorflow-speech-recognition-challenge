@@ -63,13 +63,26 @@ label_to_ix = {
     'up': 9,
     'yes': 10}
 
+"""
+for x in map_df.target.unique():
+    if x not in label_to_ix.keys():
+        label_to_ix[x] = len(label_to_ix)
+"""
+
 map_df['label'] = map_df['target'].apply(lambda x: label_to_ix[x])
 print(map_df.head())
 
 print(">>> dataset is heavily unbalanced towards 'unknown' tag")
 print(map_df.target.value_counts())
 print(">>> this will be addressed in loss function weighting")
-
+"""calculate the corresponding weight needed for each class
+w = np.array(
+    [41045, 2380, 2377, 2375, 2375, 2372, 2367, 2367, 2359, 2357, 2353])
+weighted = w / (w.min())
+weighted
+"""
+# label_weight = torch.FloatTensor([1, 17.44, 17.44, 17.44, 17.44, 17.44, 17.44,
+#                                   17.44, 17.44, 17.44, 17.44])
 label_weight = torch.FloatTensor([0.057, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
 
 
@@ -115,6 +128,29 @@ class SPECDataset(Dataset):
         return sample
 
 
+""" test the SPECDataset class
+pict_path = map_df_train.iloc[10, 0]
+image = io.imread(pict_path)[:, :, :3]
+target = map_df_train.iloc[10, 1]
+
+spec_dataset = SPECDataset(map_df_train)
+fig = plt.figure()
+for i in range(4):
+    sample = spec_dataset[i]
+    ax = plt.subplot(2, 2, i + 1)
+    plt.tight_layout()
+    ax.set_title("Sample #{}".format(i))
+    ax.axis('off')
+    plt.imshow(sample['image'])
+    if i == 3:
+        plt.show()
+        break
+
+print(sample['image'].shape)
+print(sample['target'])
+"""
+
+
 class Rescale(object):
     """Rescale the image in a sample to a given size.
 
@@ -142,6 +178,13 @@ class Rescale(object):
         img = transform.resize(image, (new_h, new_w))
         return {'image': img, 'target': target}
 
+"""
+rescale = Rescale((99, 161))
+sample_rescaled = rescale(sample)
+sample_rescaled['target']
+sample_rescaled['image'].shape
+"""
+
 
 class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
@@ -151,7 +194,12 @@ class ToTensor(object):
         image = image.transpose((2, 0, 1))
         return {'image': torch.from_numpy(image),
                 'target': torch.from_numpy(target)}
-
+"""
+totensor = ToTensor()
+sample_tensor = totensor(sample_rescaled)
+sample_tensor['image'].shape
+sample_tensor['target']
+"""
 
 trainset = SPECDataset(map_df_train,
                        transform=transforms.Compose([
@@ -167,10 +215,26 @@ validset = SPECDataset(map_df_valid,
 validloader = DataLoader(validset, batch_size=batch_size,
                          shuffle=True, num_workers=num_workers)
 
+
+"""
+for i_batch, sample_batched in enumerate(trainloader):
+    print(i_batch, sample_batched['image'].size(),
+        sample_batched['target'].size())
+    if i_batch == 3:
+        break
+"""
 # testsampler = SequentialSampler(testset)
 # testloader = DataLoader(testset, batch_size=batch_size, shuffle=False,
 #                         sampler=testsampler, num_workers=num_workers)
 print(">>> train, validation dataset created")
+
+"""
+Quick test trainloader see if it is working
+for x in trainloader:
+    x = x
+    print(repr(x))
+    break
+"""
 
 
 class CNN(nn.Module):
@@ -273,6 +337,34 @@ def validateModel(dataloader, epoch):
     print('Confusion Matrix:')
     print(cm)
     return test_loss, test_acc
+
+
+"""quick test run code
+test_loss = 0
+pred = np.array([])
+targ = np.array([])
+correct = 0
+for data in trainloader:
+    data = data
+    break
+inputs, labels = data['image'], torch.squeeze(data['target'])
+inputs, labels = Variable(inputs.float()), Variable(labels.long())
+outputs = cnn(inputs)
+test_loss += F.nll_loss(outputs, labels, weight=label_weight,
+                        size_average=False).data[0]
+pred = np.append(pred, outputs.data.topk(1)[1].numpy())
+targ = np.append(targ, labels.data.numpy())
+prd = outputs.data.topk(1)[1]
+correct += prd.eq(labels.data.view_as(prd)).sum()
+cm = confusion_matrix(targ, pred)
+from collections import Counter
+Counter(targ)
+Counter(pred)
+test_loss /= batch_size
+test_acc = correct / batch_size
+print('[Epoch %i] Accuracy: %.2f percent, Average Loss: %.2f' %
+      (1, test_acc * 100, test_loss))
+"""
 
 
 def testModel(dataloader, epoch):
