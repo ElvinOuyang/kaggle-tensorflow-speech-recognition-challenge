@@ -36,12 +36,12 @@ map_file = '../data/train_map.csv'
 model_name = 'cnn'
 batch_size = 250
 total_epochs = 30
-num_workers = 3
-learning_rate = 1
-momentum = 0.9
+num_workers = 10
+learning_rate = 0.005
+momentum = 0.95
 load_model = False
 last_epoch = 0
-use_gpu = False
+use_gpu = True
 
 # relabel the target to match required output
 print(">>> Loading the data mapping file...")
@@ -81,8 +81,10 @@ w = np.array(
 weighted = w / (w.min())
 weighted
 """
-label_weight = torch.FloatTensor([1, 17.44, 17.44, 17.44, 17.44, 17.44, 17.44,
-                                  17.44, 17.44, 17.44, 17.44])
+# label_weight = torch.FloatTensor([1, 17.44, 17.44, 17.44, 17.44, 17.44, 17.44,
+#                                   17.44, 17.44, 17.44, 17.44])
+label_weight = torch.FloatTensor([0.057, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+
 
 # create train and validation set based on map_df
 x_train, x_test, y_train, y_test = train_test_split(
@@ -271,6 +273,12 @@ if use_gpu:
 if load_model:
     cnn.load_state_dict(torch.load(load_model))
 
+if use_gpu:
+    label_weight = label_weight.cuda()
+    print(repr(label_weight))
+else:
+    print(repr(label_weight))
+
 criterion = nn.NLLLoss(weight=label_weight)
 optimizer = optim.SGD(cnn.parameters(), lr=learning_rate, momentum=momentum)
 
@@ -383,20 +391,20 @@ print(">>> training model with cnn")
 epoch_loss = []
 epoch_acc = []
 epoch_time = []
-best_acc = 0
+best_loss = 10000
 for epoch in range(last_epoch, total_epochs):
     start = time.time()
     trainEpoch(trainloader, epoch)
     duration = time.time() - start
     loss, acc = validateModel(validloader, epoch)
-    if acc > best_acc:
-        best_acc = acc
+    if loss < best_loss:
+        best_loss = loss
         save_model = '../models/' + model_name + datetime.datetime.now(
         ).strftime("_%Y_%m_%d_%H_%M") + '_epoch_' + str(epoch + 1) + "_lr_" +\
             str(learning_rate) + ".pt"
         print(">>> Epoch %i: saving model to local path" % (epoch + 1))
         torch.save(cnn.state_dict(), save_model)
-    print(">>> Best Accuracy So Far: %.4f%%" % (best_acc * 100))
+    print(">>> Best NLLLoss So Far: %.4f" % (best_loss))
     epoch_acc.append(acc)
     epoch_loss.append(loss)
     epoch_time.append(duration)
@@ -412,5 +420,3 @@ training_log['duration'] = epoch_time
 output_file = '../log/training_log_' + model_name + datetime.datetime.now(
     ).strftime("_%Y_%m_%d_%H_%M") + '_epochs_' + str(total_epochs) + ".csv"
 training_log.to_csv(output_file, index=True)
-
-# TODO: resample model for a balanced data structure
