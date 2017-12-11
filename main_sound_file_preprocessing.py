@@ -56,18 +56,20 @@ def log_specgram(audio, sample_rate, window_size=20, step_size=10, eps=1e-10):
 
 '''
 # Visualize several files
-fig = plt.figure(figsize=(10, 10))
+fig = plt.figure(figsize=(20, 20))
+locs = [0, 3000, 5000, 7000, 9000, 11000, 13000, 15000, 17000]
 
-for i in range(9):
+for i, loc in enumerate(locs):
     plt.subplot(3, 3, i+1)
     # pull the labels
-    label = train_file_map.iloc[i, ].target
+    label = train_file_map.iloc[loc, ].target
     plt.title(label)
     # create spectogram
     samplerate, test_sound = wavfile.read(train_file_map.iloc[i, ].path)
     _, spectrogram = log_specgram(test_sound, samplerate)
     plt.imshow(spectrogram.T, aspect='auto', origin='lower')
     plt.axis('off')
+plt.savefig('images/spectrogram_samples.png', bbox_inches='tight')
 '''
 
 
