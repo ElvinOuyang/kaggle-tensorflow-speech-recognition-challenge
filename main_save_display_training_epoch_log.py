@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-log_path = "../log/training_log_cnn_2017_12_04_18_48_epochs_50.csv"
+log_path = "../log/training_log_cnn_2017_12_11_05_21_epochs_5_lr_10_m_0.9.csv"
 my_dpi = 90
-out_path = "../log/training_log_cnn_2017_12_04_18_48_epochs_50.png"
+out_path = "../log/training_log_cnn_2017_12_11_05_21_epochs_5_lr_10_m_0.9.png"
 model_name = "MFCC-Phonemes CNN (Alpha: 0.1, Momentum: 0.9)"
 
 df = pd.read_csv(log_path, index_col=0)

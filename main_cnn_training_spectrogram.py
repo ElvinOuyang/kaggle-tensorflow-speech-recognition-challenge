@@ -35,13 +35,13 @@ map_file = '../data/train_map.csv'
 
 model_name = 'cnn'
 batch_size = 250
-total_epochs = 10
-num_workers = 0
-learning_rate = 0.1
+total_epochs = 30
+num_workers = 10
+learning_rate = 1
 momentum = 0.9
 load_model = False
 last_epoch = 0
-use_gpu = False
+use_gpu = True
 
 # relabel the target to match required output
 print(">>> Loading the data mapping file...")
@@ -73,6 +73,7 @@ map_df_valid['label'] = y_test
 torch.manual_seed(1122)
 if use_gpu:
     torch.cuda.manual_seed(1122)
+
 
 class SPECDataset(Dataset):
     """Spectrogram Dataset"""
@@ -252,9 +253,9 @@ def trainEpoch(dataloader, epoch):
     print(">>> Training Epoch %i" % (epoch + 1))
     cnn.train()
     for i, data in enumerate(dataloader, 0):
-        if (i + 1) % 100 == 0:
+        if (i + 1) % 30 == 0:
             print("Training [Epoch %i] Iter %i" % (epoch + 1, i + 1))
-        inputs, labels = data['image'], data['target'].view(batch_size)
+        inputs, labels = data['image'], torch.squeeze(data['target'])
         inputs, labels = inputs.float(), labels.long()
         if use_gpu:
             inputs, labels = inputs.cuda(), labels.cuda()
@@ -275,14 +276,18 @@ def validateModel(dataloader, epoch):
     pred = np.array([])
     targ = np.array([])
     for data in dataloader:
-        inputs, labels = data['image'], data['target'].view(batch_size)
+        inputs, labels = data['image'], torch.squeeze(data['target'])
         if use_gpu:
             inputs, labels = inputs.cuda(), labels.cuda()
         inputs, labels = Variable(inputs.float()), Variable(labels.long())
         outputs = cnn(inputs)
         test_loss += F.nll_loss(outputs, labels, size_average=False).data[0]
-        pred = np.append(pred, outputs.data.topk(1)[1].numpy())
-        targ = np.append(targ, labels.data.numpy())
+        if use_gpu:
+            pred = np.append(pred, outputs.data.topk(1)[1].cpu().numpy())
+            targ = np.append(targ, labels.data.cpu().numpy())
+        else:
+            pred = np.append(pred, outputs.data.topk(1)[1].numpy())
+            targ = np.append(targ, labels.data.numpy())
         prd = outputs.data.topk(1)[1]
         if use_gpu:
             correct += prd.eq(labels.data.view_as(prd)).cpu().sum()
@@ -306,7 +311,7 @@ correct = 0
 for data in trainloader:
     data = data
     break
-inputs, labels = data['image'], data['target'].view(batch_size)
+inputs, labels = data['image'], torch.squeeze(data['target'])
 inputs, labels = Variable(inputs.float()), Variable(labels.long())
 outputs = cnn(inputs)
 test_loss += F.nll_loss(outputs, labels, size_average=False).data[0]
@@ -315,6 +320,9 @@ targ = np.append(targ, labels.data.numpy())
 prd = outputs.data.topk(1)[1]
 correct += prd.eq(labels.data.view_as(prd)).sum()
 cm = confusion_matrix(targ, pred)
+from collections import Counter
+Counter(targ)
+Counter(pred)
 test_loss /= batch_size
 test_acc = correct / batch_size
 print('[Epoch %i] Accuracy: %.2f percent, Average Loss: %.2f' %
@@ -375,3 +383,6 @@ training_log['duration'] = epoch_time
 output_file = '../log/training_log_' + model_name + datetime.datetime.now(
     ).strftime("_%Y_%m_%d_%H_%M") + '_epochs_' + str(total_epochs) + ".csv"
 training_log.to_csv(output_file, index=True)
+
+# TODO: revise CNN structure to have a smaller weight
+# TODO: resample model for a balanced data structure
