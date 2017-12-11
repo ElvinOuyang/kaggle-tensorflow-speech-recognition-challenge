@@ -36,12 +36,12 @@ map_file = '../data/train_map.csv'
 model_name = 'cnn'
 batch_size = 250
 total_epochs = 30
-num_workers = 10
+num_workers = 3
 learning_rate = 1
 momentum = 0.9
 load_model = False
 last_epoch = 0
-use_gpu = True
+use_gpu = False
 
 # relabel the target to match required output
 print(">>> Loading the data mapping file...")
@@ -50,12 +50,39 @@ targets_to_keep = ['yes', 'no', 'up', 'down', 'left',
                    'right', 'on', 'off', 'stop', 'go', 'silence']
 map_df['target'] = map_df['target'].apply(
     lambda x: x if x in targets_to_keep else 'unknown')
-label_to_ix = {}
+label_to_ix = {
+    'unknown': 0,
+    'down': 1,
+    'go': 2,
+    'left': 3,
+    'no': 4,
+    'off': 5,
+    'on': 6,
+    'right': 7,
+    'stop': 8,
+    'up': 9,
+    'yes': 10}
+
+"""
 for x in map_df.target.unique():
     if x not in label_to_ix.keys():
         label_to_ix[x] = len(label_to_ix)
+"""
+
 map_df['label'] = map_df['target'].apply(lambda x: label_to_ix[x])
 print(map_df.head())
+
+print(">>> dataset is heavily unbalanced towards 'unknown' tag")
+print(map_df.target.value_counts())
+print(">>> this will be addressed in loss function weighting")
+"""calculate the corresponding weight needed for each class
+w = np.array(
+    [41045, 2380, 2377, 2375, 2375, 2372, 2367, 2367, 2359, 2357, 2353])
+weighted = w / (w.min())
+weighted
+"""
+label_weight = torch.FloatTensor([1, 17.44, 17.44, 17.44, 17.44, 17.44, 17.44,
+                                  17.44, 17.44, 17.44, 17.44])
 
 # create train and validation set based on map_df
 x_train, x_test, y_train, y_test = train_test_split(
@@ -244,7 +271,7 @@ if use_gpu:
 if load_model:
     cnn.load_state_dict(torch.load(load_model))
 
-criterion = nn.NLLLoss()
+criterion = nn.NLLLoss(weight=label_weight)
 optimizer = optim.SGD(cnn.parameters(), lr=learning_rate, momentum=momentum)
 
 
@@ -281,7 +308,8 @@ def validateModel(dataloader, epoch):
             inputs, labels = inputs.cuda(), labels.cuda()
         inputs, labels = Variable(inputs.float()), Variable(labels.long())
         outputs = cnn(inputs)
-        test_loss += F.nll_loss(outputs, labels, size_average=False).data[0]
+        test_loss += F.nll_loss(outputs, labels, weight=label_weight,
+                                size_average=False).data[0]
         if use_gpu:
             pred = np.append(pred, outputs.data.topk(1)[1].cpu().numpy())
             targ = np.append(targ, labels.data.cpu().numpy())
@@ -314,7 +342,8 @@ for data in trainloader:
 inputs, labels = data['image'], torch.squeeze(data['target'])
 inputs, labels = Variable(inputs.float()), Variable(labels.long())
 outputs = cnn(inputs)
-test_loss += F.nll_loss(outputs, labels, size_average=False).data[0]
+test_loss += F.nll_loss(outputs, labels, weight=label_weight,
+                        size_average=False).data[0]
 pred = np.append(pred, outputs.data.topk(1)[1].numpy())
 targ = np.append(targ, labels.data.numpy())
 prd = outputs.data.topk(1)[1]
@@ -384,5 +413,4 @@ output_file = '../log/training_log_' + model_name + datetime.datetime.now(
     ).strftime("_%Y_%m_%d_%H_%M") + '_epochs_' + str(total_epochs) + ".csv"
 training_log.to_csv(output_file, index=True)
 
-# TODO: revise CNN structure to have a smaller weight
 # TODO: resample model for a balanced data structure
