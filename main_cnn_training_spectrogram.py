@@ -328,3 +328,7 @@ training_log['duration'] = epoch_time
 output_file = '../log/training_log_' + model_name + datetime.datetime.now(
     ).strftime("_%Y_%m_%d_%H_%M") + '_epochs_' + str(total_epochs) + ".csv"
 training_log.to_csv(output_file, index=True)
+
+
+# TODO: sample 1 second clips from .wav background noise files and turn them
+# into spectrograms for final training
