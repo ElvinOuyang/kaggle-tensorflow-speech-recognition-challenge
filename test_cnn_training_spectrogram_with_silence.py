@@ -1,8 +1,8 @@
 """
-Script to grab spectrograms using a map file, train 2-D CNN
-model with SGD algorithms, evaluate accuracy and loss on the fly, output
-predictions and save models of each epoch for later reference or transfer
-learning
+Script to
+1. grab spectrograms using a map file, train 2-D CNN model with SGD algorithms
+2. also train on silence audio spectrograms
+3. does not include resampling of unknown / silence data input
 
 Requirements:
 spectrogram files generated from the .wav files of the dataset that are stored
