@@ -6,6 +6,8 @@ In our first research stage, we will **turn each WAV file into MFCC vector of th
 
 In our second research stage, we will **turn each WAV file into a visual graph (called spectrogram) of the same size**. Since the graphical representation of the voice has pixel points of the same scale on two dimensions, we will then apply convolutional layers on the graphs to extract latent graphical patterns from the files. We will then build fully connected layers to link the extracted feature maps to the expected output. It is even possible to feed the extracted features as a sequence to a recurrent layer since the graphical patterns should also be strictly related to time series, but the model might be too complicated for the simple task we are dealing with. The assumption of this approach is that the graphical patterns in the spectrograms of different words pronounced in the WAV files should be typical enough for the convolutional neural network to train on.
 
+In the third and final stage, we will complete the Kaggle challenge by bringing in "silent" audio clips that only includes 1 second background noise. By adding the extra layer of information about random background noise, we expect the model to better distinguish the graphical representation between useful voice and background noise. Additionally, since the real world application of the model is to distinguish the voice commands from other "unknown" words, we will also need to adjust the sampling strategy to have the neural network learn more of the "positive" outcome.
+
 ## STAGE 1: Proof-of-concept training for MFCC-phonemes approach
 
 ### STAGE 1.1: Pre-training an MLP for MFCC-phonemes layers
@@ -248,3 +250,8 @@ Confusion Matrix:
  [   4    1    1    2    0   16    1    0    6  225    0]
  [   2    0    0    2    0    0    1    1    1    0  224]]
 ```
+
+## STAGE 3: Adding silence audio and resampling the training data
+### STAGE 3.1: Adding silence background noise to the training data
+
+### STAGE 3.2: Resampling the training data and adjusting weighting
