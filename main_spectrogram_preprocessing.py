@@ -40,6 +40,12 @@ train_file_map = pd.DataFrame(file_target, columns=['path', 'target'])
 print(">>> Generated train_file_map dataframe:")
 print(train_file_map.head())
 
+# generate a test_file_map
+test_path = [[x, 0] for x in os.listdir(test_audio_path) if '.wav' in x]
+test_file_map = pd.DataFrame(test_path, columns=['path', 'target'])
+print(">>> Generated test_file_map dataframe:")
+print(test_file_map.head())
+
 # Function that changes .wav file into a spectrogram numbers
 
 
@@ -115,3 +121,18 @@ print(repr(train_file_map.iloc[i,]))
 
 # saving train map file
 train_file_map.to_csv(train_map_csv, index=True)
+
+# generate test pictures
+test_file_map['pict'] = ''
+print(">>> Creating spectrograms for test .wav files")
+for i in range(test_file_map.shape[0]):
+    targetdir = test_pict_path[:-1]
+    pict_path = wav2img(test_file_map.path[i], targetdir=targetdir)
+    test_file_map.pict[i] = pict_path
+    if (i + 1) % 500 == 0:
+        print(">>> Generating %ith spectrogram..." % (i + 1))
+        print(">>> File map %ith row:" % (i + 1))
+        print(repr(test_file_map.iloc[i, ]))
+
+# saving test map file
+test_file_map.to_csv(test_map_csv, index=True)
