@@ -12,16 +12,13 @@ extracted to the training model using a map file.
 
 import numpy as np
 import pandas as pd
-import datetime
-import time
 from skimage import io, transform
+import datetime
 import warnings
 
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SequentialSampler
 from torchvision import transforms
@@ -30,9 +27,9 @@ warnings.filterwarnings("ignore")
 test_map = '../data/test_map.csv'
 
 model_name = 'cnn'
-batch_size = 10000
+batch_size = 250
 num_workers = 10
-load_model = False
+load_model = '../models/cnn_2017_12_18_16_50_epoch_30_lr_0.005.pt'
 use_gpu = True
 
 print(">>> Loading the data mapping files...")
@@ -170,7 +167,9 @@ if load_model:
 def testModel(dataloader):
     cnn.eval()
     pred = np.array([])
-    for data in dataloader:
+    for i, data in enumerate(dataloader):
+        if (i + 1) % 20 == 0:
+            print(">>> Generating iteration %i..." % (i + 1))
         inputs = data['image'].float()
         if use_gpu:
             inputs = inputs.cuda()
@@ -200,5 +199,8 @@ def ix_to_label(label_to_ix, pred):
 submission['label'] = submission.pred.apply(
     lambda x: ix_to_label(label_to_ix, x))
 submission['fname'] = map_df.path.apply(lambda x: x.split('/')[-1])
-submission.drop(columns=['pred'], inplace=True)
-submission.to_csv('../log/submission.csv', index=False)
+submission = submission.drop(['pred'], axis=1)
+print(submission.head())
+submission_name = '../log/submission_' + datetime.datetime.now().\
+    strftime("_%Y_%m_%d_%H_%M") + ".csv"
+submission.to_csv(submission_name, index=False)
