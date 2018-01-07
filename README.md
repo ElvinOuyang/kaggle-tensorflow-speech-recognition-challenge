@@ -254,4 +254,72 @@ Confusion Matrix:
 ## STAGE 3: Adding silence audio and resampling the training data
 ### STAGE 3.1: Adding silence background noise to the training data
 
+Apart from the voice files with spoken words, the competition also provided six "silent" clips that only have background noise. The idea of using background noise in the training process is to let the models learn the difference between any spoken words and bare silence. Therefore, by incorporating silent inputs in the training process, the model should be able to distinguish a unknown spoken word and a silence.
+
+In this stage, I created spectrograms based on the silence recordings and randomly generated clips of the same size as other one second recording. I then save these clips in a directory with a corresponding file map that can be used in the training script.
+
+The resulted training performance is as below:
+
+![silence_trained.png](https://github.com/ElvinOuyang/kaggle-tensorflow-speech-recognition-challenge/blob/master/images/training_log_cnn_2017_12_16_04_10_epochs_30.png)
+
+The model has achieved a similar performance level with the added category for the silence.
+
 ### STAGE 3.2: Resampling the training data and adjusting weighting
+
+When analyzing the confusion matrix listed above, I found another potential problem: although the overall accuracy is high, the accuracy for the "positive categories" (i.e. the command words we are trying to classify) are lower than the accuracy for the unknowns and the silences, as shown below:
+
+```shell
+# best epoch of the training setting with silence
+[Epoch 15] Accuracy: 89.33%, Average Loss: 0.10
+Confusion Matrix:
+[[3537    1   85   83   28   53   30  130   51   36   42   16]
+ [   1  594    0    0    0    0    0    0    0    0    0    0]
+ [   3    0  252    5    1    4    0    1    1    0    0    0]
+ [   6    0    7  206    0   16    0    0    0    0    1    0]
+ [   5    0    2    1  213    3    0    1    2    0    1    4]
+ [   7    0    7   14    0  201    1    0    0    0    0    0]
+ [   5    0    1    1    0    0  218    6    1    0   11    1]
+ [  10    0    5    1    0    0    3  226    0    0    5    1]
+ [   4    0    2    1    2    0    0    0  215    0    2    0]
+ [   3    0    2    5    0    0    1    0    1  218    2    0]
+ [   1    0    1    3    2    0    4    2    1    2  206    1]
+ [   6    0    0    0    3    1    1    0    1    0    1  232]]
+```
+
+As we can see from this confusion matrix, the accuracies for unknown and silence (and especially for silence) are significantly higher than those command words. No matter how I adjusted the weight penalties for the unknown and silence classes, this situation did not improve. The sheer size of the unwanted "negative categories" are dominating the training input, making the model undertrained with positive categories, even with our weight penalties. The only solution would be to resampling the "unknown" and "silence" categories to have the model train more effectively on the desired categories.
+
+In this stage, I incorporated a random sampling process before the train/test split for each training epoch. Only 2365 (the average size of each command word category) samples of unknown words and silence clips were selected in each training epoch. Since my training samples now have a balanced category distribution, I used the default weighting (i.e. 1 for each category) in the loss calculation function. I received a model performance as below:
+
+![resampled_silence.png](https://github.com/ElvinOuyang/kaggle-tensorflow-speech-recognition-challenge/blob/master/images/training_log_cnn_2017_12_18_16_50_epochs_30.png)
+
+Although the chart might now be clear enough, the model is constantly improving it's performance in the 30 epochs that I ran, instead of reaching a performance plateau within around 15 epochs (which happened in the previous stage). This finding indicates that resampling the training data gave the model a chance to constantly learn from the rich source of unknowns while getting more and more information from the "positive categories". I am definitely on the right track! Below is a quick peek at the confusion matrix of Epoch 30, my best epoch under this setting:
+
+```shell
+# best epoch of the training setting with silence and resampling
+[Epoch 30] Accuracy: 90.82%, Average Loss: 0.31
+Confusion Matrix:
+[[224   0   4   4   1   2   3   6   4   0   0   1]
+ [  0 225   0   0   0   0   0   0   0   0   0   0]
+ [ 13   0 209   4   3   4   0   2   0   0   1   1]
+ [  7   0   6 176   3  25   4   0   0   4   4   0]
+ [  3   0   1   0 212   0   2   0   1   1   4   0]
+ [  6   0   4  13   1 224   1   0   1   1   1   0]
+ [  1   0   0   0   1   0 197   1   0   2  11   0]
+ [ 14   0   2   0   0   2  19 227   0   0   2   0]
+ [  9   0   0   0   2   0   1   0 215   0   0   0]
+ [  6   0   3   4   1   0   5   0   0 234   7   1]
+ [  2   0   0   2   0   0   8   0   0   3 209   0]
+ [  1   0   1   0   3   0   0   0   0   1   0 229]]
+```
+
+As indicated in the confusion matrix above, although the total accuracy is on par with previous stages, the predictions for the positive categories (columns 3 to 12) are significantly better than than previous stages. The model is working fine!
+
+## STAGE 4: Stepping in the world of meta-model-stacking
+
+Theoretically speaking, if the model from my previous stage can run on enough number of epochs with the positive samples and the resampled negative samples, it will be able to improve even more. However, since I don't have enough computing resources at my disposal and the training strategy still has a key weakness, I don't expect the model to improve much from current results. The key weakness of my training strategy is the existence of "unknown unknowns": my model works fine when it "hears" words that appeared in the training data (let it be the positive words or all the words that are categorized into "unknown") but will not have a good performance when it hears words that it has never heard of before. This exogenous factor will lead to an "overfitting" situation where the model works perfectly on the validation/test setting that I created in the script, while failing in the real-life situation or the kaggle leaderboard. In fact, [some posts on Kaggle](https://www.kaggle.com/c/tensorflow-speech-recognition-challenge/discussion/45682) pointed out that the real challenge indeed lies in the existence of the unheard words with "unknown" labels in the leaderboard test dataset.
+
+In this stage, I will use some meta-model-stacking techniques to address this inherent problem from unknown unknowns.
+
+### STAGE 4.1: Training specialized CNNs for silence and unknowns
+
+Since the unknown unknowns could be a main challenge my model performance, it is important to address the problem with a "specialized checker". Recall that when I predict classes using the log-probability from a Softmax output layer, I determine the class by identifying the class with the highest log-probability (i.e. the class with the highest probability wins the prediction). This method, however, could be a source of errors because in the case of unknown unknowns, the winning class might be winning with a really trivial margin. Therefore, I need to create an "unknown checker" that gives a probability of the input being an "unknown" and compare it with the probability from the winning class's probability: if unknown is way more likely than the winning class then I will determine that the input is an "unknown" instead.
