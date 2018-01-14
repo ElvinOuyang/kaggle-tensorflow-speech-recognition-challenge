@@ -322,4 +322,19 @@ In this stage, I will use some meta-model-stacking techniques to address this in
 
 ### STAGE 4.1: Training specialized CNNs for silence and unknowns
 
-Since the unknown unknowns could be a main challenge my model performance, it is important to address the problem with a "specialized checker". Recall that when I predict classes using the log-probability from a Softmax output layer, I determine the class by identifying the class with the highest log-probability (i.e. the class with the highest probability wins the prediction). This method, however, could be a source of errors because in the case of unknown unknowns, the winning class might be winning with a really trivial margin. Therefore, I need to create an "unknown checker" that gives a probability of the input being an "unknown" and compare it with the probability from the winning class's probability: if unknown is way more likely than the winning class then I will determine that the input is an "unknown" instead.
+Since the unknown unknowns could be a main challenge my model performance, it is important to address the problem with a "specialized checker". Recall that when I predict classes using the log-probability from a Softmax output layer, I determine the class by identifying the class with the highest log-probability (i.e. the class with the highest probability wins the prediction). This method, however, could be a source of errors because in the case of unknown unknowns, the winning class might be winning with a really trivial margin. Therefore, I need to create an **"unknown checker"** that gives a probability of the input being an "unknown" and compare it with the probability from the winning class's probability: if unknown is way more likely than the winning class then I will determine that the input is an "unknown" instead.
+
+In order to create this "unknown checker", I relabeled the target to "unknown", "silence", and "else", where "else" is all the positive labels I used in previous stages. I then trained with the same parameters (learning rate at 0.05 and momentum at 0.95 for SGD) for 30 epochs. The best epoch has a confusion matrix like below:
+
+```shell
+# best epoch of unknown checker with silence and weighting
+[Epoch 19] Accuracy: 94.06%, Average Loss: 0.1471
+Confusion Matrix:
+[[3918    1  173]
+[   0  595    0]
+[ 245    1 2140]]
+```
+
+The model gives a good enough performance as a rough "unknown checker". Since I don't need to use the output of this network to make actual predictions, I will stick with this model in my next stage.
+
+### STAGE 4.2: "Stacking" models using logical probability comparison
