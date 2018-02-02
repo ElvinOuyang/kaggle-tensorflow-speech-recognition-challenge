@@ -338,3 +338,5 @@ Confusion Matrix:
 The model gives a good enough performance as a rough "unknown checker". Since I don't need to use the output of this network to make actual predictions, I will stick with this model in my next stage.
 
 ### STAGE 4.2: "Stacking" models using logical probability comparison
+
+The final stage in my research is to stack the predictions from main network with the unknown checker, and make a final prediction decision based on the probabilities returned from these two networks. This is mostly a logical decision process where I compare the probability of non-unknown and non-silence predictions: if the probability of the prediction is lower the unknown checker's probability of the input being an unknown, I will revise the prediction to "unknown". However, the revised prediction did not generate a better prediction for the Kaggle public leaderboard. It seems that the network still needs a more aggressive strategy to learn from "unknown unknowns".
